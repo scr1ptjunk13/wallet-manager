@@ -1,0 +1,9 @@
+- [ ] how would you fund the wallet - different types of fundings sources
+- [ ] how do you take funding from CEX , Mixer and crosschain
+- [ ] what is Box<dyn Error> 
+- [ ] what's the difference b/w eprintln!() and println!()
+- [ ] go a bit deep in thiserror crate
+- [ ] #[error(transparent)]
+- [ ] automatic variant conversion using ? and #[from]
+- [ ] ? can only be used if your error types implment From<T>
+- [ ] ? returning up the call stack 
