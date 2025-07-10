@@ -3882,11 +3882,16 @@ dependencies = [
  "aes-gcm",
  "anyhow",
  "argon2",
+ "async-trait",
+ "base64 0.21.7",
  "bip39",
  "chrono",
  "ethers",
+ "fastrand",
  "hdwallet",
  "hex",
+ "hmac",
+ "log",
  "rand 0.8.5",
  "reqwest",
  "secp256k1 0.28.2",
@@ -3900,6 +3905,7 @@ dependencies = [
  "tokio-test",
  "tracing",
  "uuid 1.17.0",
+ "zeroize",
 ]
 
 [[package]]

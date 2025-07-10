@@ -34,6 +34,12 @@ anyhow = "1.0"
 thiserror = "1.0"
 tracing = "0.1"
 chrono = {version = "0.4.41", features = ["serde"]}
+zeroize = "1.8.1"
+base64 = "0.21.7"
+async-trait = "0.1.88"
+hmac = "0.12.1"
+fastrand = "2.3.0"
+log = "0.4.27"
 
 [dev-dependencies]
 tokio-test = "0.4"
