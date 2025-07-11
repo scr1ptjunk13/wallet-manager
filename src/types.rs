@@ -115,15 +115,21 @@ pub struct MixerConfig {
     pub tornado_relayer_url: String,
     pub tornado_private_key: String,
     pub aztec_enabled: bool,
+    pub aztec_relayer_url: String, // Corrected from aztec_replayer_url
     pub aztec_api_key: String,
     pub railgun_enabled: bool,
+    pub railgun_relayer_url: String,
     pub railgun_api_key: String,
     pub noir_enabled: bool,
+    pub noir_relayer_url: String,
     pub noir_api_key: String,
     pub penumbra_enabled: bool,
+    pub penumbra_relayer_url: String,
     pub penumbra_api_key: String,
     pub min_mixing_delay: u64,
     pub cross_chain_hops: usize,
+    pub supported_chains: Vec<u64>,
+    pub proxies: Option<Vec<String>>, // Added proxy list
 }
 
 impl Default for MixerConfig {
@@ -133,15 +139,21 @@ impl Default for MixerConfig {
             tornado_relayer_url: String::new(),
             tornado_private_key: String::new(),
             aztec_enabled: false,
+            aztec_relayer_url: String::new(),
             aztec_api_key: String::new(),
             railgun_enabled: false,
+            railgun_relayer_url: String::new(),
             railgun_api_key: String::new(),
             noir_enabled: false,
+            noir_relayer_url: String::new(),
             noir_api_key: String::new(),
             penumbra_enabled: false,
+            penumbra_relayer_url: String::new(),
             penumbra_api_key: String::new(),
-            min_mixing_delay: 300,
-            cross_chain_hops: 3,
+            min_mixing_delay: 300, // 5 minutes in seconds, reasonable for initial mixing
+            cross_chain_hops: 3, // Moderate number of hops for cross-chain obfuscation
+            supported_chains: vec![1, 137, 42161], // Ethereum, Polygon, Arbitrum
+            proxies: None, // No proxies by default, user must provide
         }
     }
 }
