@@ -305,6 +305,8 @@ pub enum MixerType {
     Tornado,
     Aztec,
     Railgun,
+    Noir,
+    Penumbra,
 }
 
 // Placeholder for CEX config (defined in cex.rs)

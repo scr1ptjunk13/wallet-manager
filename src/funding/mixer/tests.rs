@@ -32,6 +32,25 @@ mod tests {
         let result = mixer_funding.fund_wallet(request).await;
         assert!(result.is_ok());
     }
+    #[tokio::test]
+    async fn test_noir_mixing() {
+        let config = MixerConfig {
+            noir_enabled: true,
+            noir_api_key: "test_key".to_string(),
+            ..Default::default()
+        };
+        let mut mixer_funding = MixerFunding::new(&config).await.unwrap();
+        let request = MixerFundingRequest {
+            wallet_id: Uuid::new_v4(),
+            amount: 1.0,
+            chain_id: 1,
+            mixer_type: MixerType::Noir, // Add Noir to MixerType in types.rs
+            anonymity_set: 100,
+            delay_hours: 1,
+        };
+        let result = mixer_funding.fund_wallet(request).await;
+        assert!(result.is_ok());
+    }
 
     #[test]
     fn test_mixing_stats() {
