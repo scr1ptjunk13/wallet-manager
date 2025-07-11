@@ -4,7 +4,7 @@ pub mod mixer;
 pub mod cross_chain;
 
 pub use cex::CexFunding;
-pub use mixer::MixerFunding;
+pub use mixer::{MixerFunding, MixingStrategy, MixingStepType, CustomMixingPattern, CustomMixingStep};
 pub use cross_chain::CrossChainFunding;
 
 use crate::types::*;
@@ -12,14 +12,6 @@ use crate::error::WalletError;
 use std::collections::HashMap;
 use uuid::Uuid;
 
-// src/funding/mod.rs
-
-
-pub use cex::CexFunding;
-pub use mixer::{MixerFunding, MixingStrategy, MixingStepType, CustomMixingPattern, CustomMixingStep};
-pub use cross_chain::CrossChainFunding;
-
-// Rest of the funding/mod.rs code remains unchanged
 
 /// Main funding manager that coordinates all funding sources
 pub struct FundingManager {
@@ -31,7 +23,7 @@ pub struct FundingManager {
 }
 
 impl FundingManager {
-    /// Create new funding manager
+    /// Create a new funding manager
     pub async fn new() -> Result<Self, WalletError> {
         let config = FundingConfig::default();
 

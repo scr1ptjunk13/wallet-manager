@@ -2,7 +2,7 @@
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 use uuid::Uuid;
-use crate::funding::mixer::{MixingStrategy, MixingStepType, CustomMixingPattern, CustomMixingStep};
+use crate::funding::mixer::types::{MixingStrategy, MixingStepType, CustomMixingPattern, CustomMixingStep};
 
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -108,7 +108,7 @@ impl Default for FundingConfig {
     }
 }
 
-// Mixer configuration
+//Mixer Configuration
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct MixerConfig {
     pub tornado_enabled: bool,
@@ -118,7 +118,11 @@ pub struct MixerConfig {
     pub aztec_api_key: String,
     pub railgun_enabled: bool,
     pub railgun_api_key: String,
-    pub min_mixing_delay: u64, // seconds
+    pub noir_enabled: bool,
+    pub noir_api_key: String,
+    pub penumbra_enabled: bool,
+    pub penumbra_api_key: String,
+    pub min_mixing_delay: u64,
     pub cross_chain_hops: usize,
 }
 
@@ -132,11 +136,18 @@ impl Default for MixerConfig {
             aztec_api_key: String::new(),
             railgun_enabled: false,
             railgun_api_key: String::new(),
-            min_mixing_delay: 300, // 5 minutes
+            noir_enabled: false,
+            noir_api_key: String::new(),
+            penumbra_enabled: false,
+            penumbra_api_key: String::new(),
+            min_mixing_delay: 300,
             cross_chain_hops: 3,
         }
     }
 }
+
+
+
 
 // Mixing record for history tracking
 #[derive(Debug, Clone)]
