@@ -5,6 +5,8 @@ pub mod generator;
 pub mod funding;
 pub mod balance;
 pub mod security;
+pub mod activity;
+pub mod network;
 
 use crate::types::*;
 use crate::error::WalletError;
@@ -12,6 +14,8 @@ use std::collections::HashMap;
 use std::sync::Arc;
 use tokio::sync::RwLock;
 use uuid::Uuid;
+pub use activity::ActivitySimulator;
+pub use network::ProxyManager;
 
 /// Main wallet manager - your money machine
 #[derive(Clone)]

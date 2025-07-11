@@ -200,6 +200,7 @@ pub struct MixerFundingRequest {
     pub mixer_type: MixerType,
     pub anonymity_set: u32,
     pub delay_hours: u32,
+    pub post_funding_activity: bool,
 }
 
 // CEX funding request (placeholder, defined in cex.rs)
