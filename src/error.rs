@@ -143,6 +143,9 @@ pub enum WalletError {
     #[error("Airdrop already claimed: {0}")]
     AirdropAlreadyClaimed(String),
 
+    #[error("Mixing error: {0}")]
+    MixingError(String), // Added here
+
     // Generic errors
     #[error("Internal error: {0}")]
     InternalError(String),
@@ -159,7 +162,8 @@ impl WalletError {
             | WalletError::RpcError(_)
             | WalletError::ConnectionTimeout
             | WalletError::RateLimitExceeded
-            | WalletError::TimeoutError(_) => true,
+            | WalletError::TimeoutError(_)
+            | WalletError::MixingError(_) => true, // Add MixingError as retryable
             _ => false,
         }
     }
@@ -225,7 +229,8 @@ impl WalletError {
             WalletError::AirdropEligibilityError(_)
             | WalletError::AirdropClaimError(_)
             | WalletError::AirdropNotAvailable(_)
-            | WalletError::AirdropAlreadyClaimed(_) => "airdrop",
+            | WalletError::AirdropAlreadyClaimed(_)
+            | WalletError::MixingError(_) => "airdrop", // Add MixingError to airdrop category
 
             _ => "system",
         }

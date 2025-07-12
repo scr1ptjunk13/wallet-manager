@@ -1,0 +1,1 @@
+//feed analysis back to intelligence/ranker.rs

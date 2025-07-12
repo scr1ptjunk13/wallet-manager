@@ -12,6 +12,7 @@ hdwallet = "0.4"
 rand = "0.8"
 hex = "0.4"
 
+
 # Encryption
 aes-gcm = "0.10"
 argon2 = "0.5"
@@ -33,6 +34,11 @@ alloy-primitives = "1.2.1"
 alloy-provider = "1.0.20"
 alloy-signer = "1.0.20"
 alloy-contract = "1.0.20"
+alloy-signer-local = "1.0.20"
+alloy-rpc-types = "1.0.20"
+alloy-sol-types = "1.2.1"
+alloy-sol-macro = "0.3.1"
+
 
 # Utils
 anyhow = "1.0"

@@ -1,22 +1,32 @@
 // src/activity/simulator.rs
 use crate::error::WalletError;
 use crate::network::ProxyManager;
-use alloy_provider::{Provider, Http};
+use alloy_provider::{ProviderBuilder};
 use alloy_primitives::{Address, U256};
-use alloy_signer::LocalWallet;
-use alloy_contract::Contract;
+//use alloy_signer::signer::{Signer, SignerSync};
+use alloy_signer_local::PrivateKeySigner;
+use alloy_contract::{ContractInstance, Interface};
+use alloy_rpc_types::TransactionRequest;
+use alloy_sol_macro::sol;
 use reqwest::Client;
 use rand::Rng;
 use tokio::time::{sleep, Duration};
 use uuid::Uuid;
 use std::str::FromStr;
 
-// Uniswap V3 Swap ABI (simplified, replace with actual ABI)
-const UNISWAP_ABI: &str = r#"
-[
-    {"inputs":[{"internalType":"address","name":"recipient","type":"address"},{"internalType":"bool","name":"zeroForOne","type":"bool"},{"internalType":"int256","name":"amountSpecified","type":"int256"},{"internalType":"uint160","name":"sqrtPriceLimitX96","type":"uint160"}],"name":"swap","stateMutability":"nonpayable","type":"function"}
-]
-"#;
+// Define the Uniswap V3 contract using the sol! macro
+sol! {
+    #[sol(rpc)]
+    contract UniswapV3Pool {
+        function swap(
+            address recipient,
+            bool zeroForOne,
+            int256 amountSpecified,
+            uint160 sqrtPriceLimitX96,
+            bytes calldata data
+        ) external returns (int256 amount0, int256 amount1);
+    }
+}
 
 #[derive(Debug, Clone, serde::Serialize)]
 struct DiscordMessage {
@@ -30,9 +40,9 @@ struct TwitterPost {
 
 pub struct ActivitySimulator {
     proxy_manager: ProxyManager,
-    provider: Http<reqwest::Client>,
-    wallet: LocalWallet,
-    uniswap_contract: Contract,
+    rpc_url: String,
+    wallet: PrivateKeySigner,
+    uniswap_address: Address,
     discord_api_key: Option<String>,
     twitter_api_key: Option<String>,
 }
@@ -45,91 +55,135 @@ impl ActivitySimulator {
         twitter_api_key: Option<String>,
         proxies: Vec<String>,
     ) -> Result<Self, WalletError> {
-        // Initialize proxy manager with 50 proxies
+        // Initialize proxy manager
         let proxy_manager = ProxyManager::new(proxies)?;
 
-        // Get a client with a proxy for provider
-        let client = proxy_manager.get_client().await?;
-        let provider = Http::new_with_client(
-            reqwest::Url::parse(&rpc_url)
-                .map_err(|e| WalletError::MixingError(format!("Invalid RPC URL: {}", e)))?,
-            client,
-        );
-
-        // Initialize wallet
-        let wallet = LocalWallet::from_str(&private_key)
+        // Initialize wallet with PrivateKeySigner
+        let wallet = private_key.parse::<PrivateKeySigner>()
             .map_err(|e| WalletError::MixingError(format!("Invalid private key: {}", e)))?;
 
-        // Initialize Uniswap V3 contract
-        let uniswap_address = Address::from_str("0x...UniswapV3PoolAddress...") // Replace with actual address
+        // Uniswap V3 router address (replace with actual address for your network)
+        let uniswap_address = Address::from_str("0x68b3465833fb72A70ecDF485E0e4C7bD8665Fc45") // Uniswap V3 Router
             .map_err(|e| WalletError::MixingError(format!("Invalid Uniswap address: {}", e)))?;
-        let uniswap_contract = Contract::new(uniswap_address, UNISWAP_ABI.parse().unwrap(), provider.clone());
 
         Ok(Self {
             proxy_manager,
-            provider,
+            rpc_url,
             wallet,
-            uniswap_contract,
+            uniswap_address,
             discord_api_key,
             twitter_api_key,
         })
     }
 
+    async fn get_provider(&self) -> Result<ReqwestProvider, WalletError> {
+        let client = self.proxy_manager.get_client().await?;
+        let provider = ProviderBuilder::new()
+            .with_client(client)
+            .on_http(self.rpc_url.parse()
+                .map_err(|e| WalletError::MixingError(format!("Invalid RPC URL: {}", e)))?);
+        Ok(provider)
+    }
+
     pub async fn simulate_onchain_activity(&self, wallet_id: Uuid, chain_id: u64) -> Result<(), WalletError> {
         let tx_count = rand::thread_rng().gen_range(2..6); // 2-5 transactions
+
         for i in 0..tx_count {
-            // Rotate proxy for each transaction
-            let client = self.proxy_manager.get_client().await?;
-            let provider = Http::new_with_client(
-                self.provider.url().clone(),
-                client,
-            );
+            // Get provider with rotated proxy
+            let provider = self.get_provider().await?;
 
             let amount = rand::thread_rng().gen_range(0.001..0.01);
             let amount_wei = U256::from((amount * 1e18) as u64);
 
-            // Simulate Uniswap V3 swap
-            let call = self.uniswap_contract
-                .method("swap", (
-                    self.wallet.address(),
-                    true,
-                    amount_wei,
-                    U256::from(0),
-                ))
-                .map_err(|e| WalletError::MixingError(format!("Failed to prepare swap: {}", e)))?;
+            // Create a simple transfer transaction
+            let tx = TransactionRequest::default()
+                .with_to(self.uniswap_address)
+                .with_value(amount_wei)
+                .with_gas_limit(21000)
+                .with_chain_id(chain_id);
 
-            let tx = call.send().await
-                .map_err(|e| WalletError::MixingError(format!("Swap failed: {}", e)))?;
+            // Sign and send transaction
+            match provider.send_transaction(tx).await {
+                Ok(pending_tx) => {
+                    log::info!("Simulated transaction {} for wallet {}: tx_hash={:?}",
+                              i + 1, wallet_id, pending_tx.tx_hash());
+                },
+                Err(e) => {
+                    log::warn!("Failed to send transaction {} for wallet {}: {}",
+                              i + 1, wallet_id, e);
+                    // Continue with next transaction instead of failing completely
+                }
+            }
 
-            log::info!("Simulated swap {} for wallet {}: tx_hash={}", i + 1, wallet_id, format!("0x{:x}", tx.tx_hash()));
-
+            // Random delay between 1-7 days
             let delay = rand::thread_rng().gen_range(86400..604800);
             sleep(Duration::from_secs(delay)).await;
         }
         Ok(())
     }
 
+    pub async fn simulate_uniswap_activity(&self, wallet_id: Uuid, chain_id: u64) -> Result<(), WalletError> {
+        let provider = self.get_provider().await?;
+
+        // Create contract instance
+        let contract = UniswapV3Pool::new(self.uniswap_address, &provider);
+
+        let amount = rand::thread_rng().gen_range(0.001..0.01);
+        let amount_wei = U256::from((amount * 1e18) as u64);
+
+        // Build the swap call
+        let call_builder = contract.swap(
+            self.wallet.address(),
+            true, // zeroForOne
+            amount_wei.try_into().unwrap_or(1000000), // amountSpecified as int256
+            U256::from(0), // sqrtPriceLimitX96
+            vec![].into(), // empty calldata
+        );
+
+        // Send the transaction
+        match call_builder.send().await {
+            Ok(pending_tx) => {
+                log::info!("Simulated Uniswap swap for wallet {}: tx_hash={:?}",
+                          wallet_id, pending_tx.tx_hash());
+            },
+            Err(e) => {
+                log::warn!("Failed to execute Uniswap swap for wallet {}: {}",
+                          wallet_id, e);
+            }
+        }
+
+        Ok(())
+    }
+
     pub async fn simulate_offchain_activity(&self, wallet_id: Uuid) -> Result<(), WalletError> {
         let activity_count = rand::thread_rng().gen_range(1..4);
+
         for i in 0..activity_count {
             let client = self.proxy_manager.get_client().await?;
             let choice = rand::thread_rng().gen::<f32>();
+
             if choice < 0.5 && self.discord_api_key.is_some() {
                 let message = DiscordMessage {
                     content: format!("Excited about the airdrop! #crypto {}", rand::thread_rng().gen::<u32>()),
                 };
+
+                // Note: You need to replace with actual channel ID
                 let response = client
-                    .post("https://discord.com/api/v10/channels/.../messages") // Replace with actual channel ID
+                    .post("https://discord.com/api/v10/channels/YOUR_CHANNEL_ID/messages")
                     .bearer_auth(self.discord_api_key.as_ref().unwrap())
                     .json(&message)
                     .send()
                     .await
                     .map_err(|e| WalletError::MixingError(format!("Discord API failed: {}", e)))?;
-                log::info!("Simulated Discord message {} for wallet {}: status={}", i + 1, wallet_id, response.status());
+
+                log::info!("Simulated Discord message {} for wallet {}: status={}",
+                          i + 1, wallet_id, response.status());
+
             } else if self.twitter_api_key.is_some() {
                 let post = TwitterPost {
                     text: format!("Just joined the latest #airdrop! 🚀 {}", rand::thread_rng().gen::<u32>()),
                 };
+
                 let response = client
                     .post("https://api.twitter.com/2/tweets")
                     .bearer_auth(self.twitter_api_key.as_ref().unwrap())
@@ -137,9 +191,12 @@ impl ActivitySimulator {
                     .send()
                     .await
                     .map_err(|e| WalletError::MixingError(format!("Twitter API failed: {}", e)))?;
-                log::info!("Simulated Twitter post {} for wallet {}: status={}", i + 1, wallet_id, response.status());
+
+                log::info!("Simulated Twitter post {} for wallet {}: status={}",
+                          i + 1, wallet_id, response.status());
             }
 
+            // Random delay between 1 hour and 1 day
             let delay = rand::thread_rng().gen_range(3600..86400);
             sleep(Duration::from_secs(delay)).await;
         }
@@ -147,11 +204,23 @@ impl ActivitySimulator {
     }
 
     pub async fn simulate_activity(&self, wallet_id: Uuid, chain_id: u64) -> Result<(), WalletError> {
-        tokio::try_join!(
-            self.simulate_onchain_activity(wallet_id, chain_id),
-            self.simulate_offchain_activity(wallet_id)
-        )?;
+        // Run both activities concurrently
+        let onchain_result = self.simulate_onchain_activity(wallet_id, chain_id);
+        let offchain_result = self.simulate_offchain_activity(wallet_id);
+
+        // Wait for both to complete
+        tokio::try_join!(onchain_result, offchain_result)?;
+        Ok(())
+    }
+
+    pub async fn simulate_comprehensive_activity(&self, wallet_id: Uuid, chain_id: u64) -> Result<(), WalletError> {
+        // Run all three types of activities
+        let onchain_result = self.simulate_onchain_activity(wallet_id, chain_id);
+        let uniswap_result = self.simulate_uniswap_activity(wallet_id, chain_id);
+        let offchain_result = self.simulate_offchain_activity(wallet_id);
+
+        // Wait for all to complete
+        tokio::try_join!(onchain_result, uniswap_result, offchain_result)?;
         Ok(())
     }
 }
-

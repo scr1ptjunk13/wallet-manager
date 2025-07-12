@@ -7,6 +7,7 @@ pub mod balance;
 pub mod security;
 pub mod activity;
 pub mod network;
+mod analysis;
 
 use crate::types::*;
 use crate::error::WalletError;

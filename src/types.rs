@@ -4,6 +4,20 @@ use std::collections::HashMap;
 use uuid::Uuid;
 use crate::funding::mixer::types::{MixingStrategy, MixingStepType, CustomMixingPattern, CustomMixingStep};
 
+// Add types for simulation (e.g., SocialPost, AirdropConfig) to centralize data structures.Example:rust
+// 
+// use serde::{Deserialize, Serialize};
+// use alloy_primitives::Address;
+// 
+// #[derive(Debug, Clone, Serialize)]
+// pub struct SocialPost {
+//     pub platform: String,
+//     pub content: String,
+//     pub address: Option<Address>,
+// }
+// 
+
+
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct Wallet {
