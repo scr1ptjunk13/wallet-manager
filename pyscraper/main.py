@@ -1,6 +1,6 @@
-from scrapers.airdrops_io import AirdropsIOScraper
-from scrapers.galaxe import EnhancedGalxeScraper
-from utils.campaign_database import CampaignDatabase
+from sources.web.airdropsio import AirdropsIOScraper
+from sources.web.galxe import EnhancedGalxeScraper
+from core.storage.campaign_database import CampaignDatabase
 
 def print_airdrop_summary(airdrops, limit=10):
     print(f"\n=== Latest {len(airdrops)} Airdrops from Airdrops.io ===")
