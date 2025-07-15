@@ -1,0 +1,11 @@
+pyscraper
+└── sources
+    └── reddit
+        ├── __init__.py          # Marks directory as a Python package
+        ├── config.yaml          # Reddit API credentials and settings
+        ├── fetch.py             # Main script to fetch and process Reddit data
+        ├── parser.py            # Logic to parse posts/comments into airdrop data
+        ├── requirements.txt      # Reddit-specific dependencies
+        ├── results.db           # SQLite database for storing parsed airdrop data
+        ├── subs.txt             # List of subreddits to scrape
+        └── utils.py             # Helper functions (e.g., text cleaning, data extraction)

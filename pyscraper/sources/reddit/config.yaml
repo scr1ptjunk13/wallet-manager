@@ -1,0 +1,17 @@
+reddit:
+  client_id: "XhRnHWooN4n5Nla1Yer6wg"                     # From the screenshot
+  client_secret: "nGzWFzKE9WZs-VPXXCWja3oFTzURlA"         # From the screenshot
+  user_agent: "airdropfarming:v1.0 (by /u/PleasantEquivalent65)"  # Updated to match app name and username
+scraper:
+  max_posts: 100
+  max_comments: 50
+  comment_depth: 3
+keywords:
+  - airdrop
+  - alpha
+  - defi
+  - liquidity
+  - retroactive
+  - testnet
+  - farming
+
