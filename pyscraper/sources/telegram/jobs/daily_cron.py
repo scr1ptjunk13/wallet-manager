@@ -23,7 +23,6 @@ def load_pointer():
     return {}
 
 def save_pointer(pointer):
-    # Ensure the data directory exists
     os.makedirs(os.path.dirname(POINTER_PATH), exist_ok=True)
     with open(POINTER_PATH, "w") as f:
         json.dump(pointer, f, indent=2)
@@ -37,25 +36,38 @@ def main():
     messages = fetch_new_messages(since=last_timestamp)
     print(f"Fetched {len(messages)} new messages")
 
-    # Step 2: Combine message texts and parse
-    combined_text = "\n\n".join([msg["text"] for msg in messages])
-    campaigns = parse_telegram_message(combined_text, channel="airdrops_io", first_seen="cron" if last_timestamp else "initial")
-    
-    print("Parsed campaigns:", campaigns)
-
+    all_campaigns = []
     new_latest_ts = last_timestamp
 
-    # Step 3: Process each campaign
-    for campaign in campaigns:
+    # Step 2: Parse each message individually
+    for msg in messages:
         try:
-            if not campaign:
-                print("Empty campaign, skipping")
-                continue
+            campaigns = parse_telegram_message(
+                msg["text"], 
+                channel="airdrops_io", 
+                first_seen="cron"
+            )
 
+            for campaign in campaigns:
+                campaign["telegram_timestamp"] = msg["timestamp"]
+                all_campaigns.append(campaign)
+
+                # Update pointer time if needed
+                if msg["timestamp"] > new_latest_ts:
+                    new_latest_ts = msg["timestamp"]
+
+        except Exception as e:
+            print("Failed to parse message:", e)
+            continue
+
+    print(f"Parsed {len(all_campaigns)} campaigns")
+
+    # Step 3: Enrich and insert campaigns
+    for campaign in all_campaigns:
+        try:
             print(f"Processing: {campaign['airdrop_name']}")
             airdrop_data = extract_info_from_airdrop_page(campaign["link"])
             if not airdrop_data:
-                print("No data found on page, skipping")
                 continue
 
             enriched = {
@@ -65,17 +77,17 @@ def main():
             }
             insert_campaign(enriched)
 
-            if campaign["telegram_timestamp"] > new_latest_ts:
-                new_latest_ts = campaign["telegram_timestamp"]
-
         except Exception as e:
-            print("Failed to process campaign:", e)
+            print("Failed to enrich/insert campaign:", e)
             continue
 
-    # Step 4: Update pointer
-    pointer["airdrops_io"] = new_latest_ts
-    save_pointer(pointer)
-    print("Pointer updated")
+    # Step 4: Update pointer only if new data was processed
+    if all_campaigns:
+        pointer["airdrops_io"] = new_latest_ts
+        save_pointer(pointer)
+        print("Pointer updated")
+    else:
+        print("No campaigns to update. Pointer not changed.")
 
 if __name__ == "__main__":
     main()
